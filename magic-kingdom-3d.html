@@ -1,0 +1,663 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<!-- skill:chrome -->
+<style>
+/* Credit line — bottom-right */
+.design-ui-credit {
+  position: fixed;
+  bottom: 12px;
+  right: 12px;
+  font: 11px/1 system-ui, sans-serif;
+  color: rgba(128,128,128,0.5);
+  pointer-events: none;
+  z-index: 2147483647;
+  transition: opacity 0.4s ease;
+  user-select: none;
+  letter-spacing: 0.02em;
+}
+
+/* Hide chrome on touch devices */
+@media (hover: none) {
+  .design-ui-credit { display: none; }
+}
+
+/* Print fixes */
+@media print {
+  * {
+    transition: none !important;
+    animation: none !important;
+    box-shadow: none !important;
+  }
+  body {
+    print-color-adjust: exact;
+    -webkit-print-color-adjust: exact;
+  }
+  .design-ui-credit { display: none !important; }
+}
+
+</style>
+<script>
+(function () {
+    // Design-ui pages are single compositions, so the whole body is editable.
+    function markEditable() {
+        document.body.classList.add('artifact-editable');
+    }
+
+    // Credit badge with idle-fade. Hover devices only.
+    function initChromeUI() {
+        if (!matchMedia('(hover: hover)').matches) return;
+
+        var credit = document.createElement('div');
+        credit.className = 'design-ui-credit';
+        credit.setAttribute('aria-hidden', 'true');
+        credit.innerHTML = '\u{1F49C} by ClickUp Brain';
+        document.body.appendChild(credit);
+
+        var timer = null;
+        var fade = function (out) { credit.style.opacity = out ? '0' : ''; };
+        fade(true);
+        var show = function () {
+            fade(false);
+            clearTimeout(timer);
+            timer = setTimeout(function () { fade(true); }, 3000);
+        };
+        document.addEventListener('mousemove', show);
+        show();
+    }
+
+    function init() {
+        markEditable();
+        initChromeUI();
+    }
+
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', init);
+    } else {
+        init();
+    }
+})();
+
+</script>
+<!-- /skill:chrome -->
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Magic Kingdom 3D</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box;}
+body{overflow:hidden;background:#87CEEB;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',system-ui,sans-serif;touch-action:none;-webkit-user-select:none;user-select:none;position:fixed;width:100%;height:100%;}
+canvas#game{display:block;width:100%;height:100%;position:fixed;top:0;left:0;}
+
+.hud{position:fixed;top:16px;left:16px;z-index:100;display:flex;gap:12px;align-items:flex-start;}
+.hud-box{background:rgba(255,255,255,0.92);backdrop-filter:blur(12px);border:1px solid rgba(0,0,0,0.08);border-radius:12px;padding:12px 16px;box-shadow:0 4px 20px rgba(0,0,0,0.08);}
+.hud-label{font-size:10px;color:#666;text-transform:uppercase;letter-spacing:0.08em;font-weight:600;}
+.hud-value{font-size:20px;font-weight:700;color:#222;font-variant-numeric:tabular-nums;}
+.hud-value.gold{color:#D4A017;}
+.hud-value.speed{color:#2563EB;}
+
+.magic-bar{position:fixed;top:16px;right:16px;z-index:100;display:flex;gap:8px;}
+.spell-btn{width:56px;height:56px;border-radius:14px;border:2px solid rgba(0,0,0,0.08);background:rgba(255,255,255,0.92);backdrop-filter:blur(12px);display:flex;flex-direction:column;align-items:center;justify-content:center;cursor:pointer;transition:all 0.2s;box-shadow:0 4px 16px rgba(0,0,0,0.06);font-size:20px;gap:2px;}
+.spell-btn span{font-size:8px;font-weight:600;color:#666;letter-spacing:0.04em;}
+.spell-btn:hover{transform:scale(1.1);box-shadow:0 6px 24px rgba(0,0,0,0.12);}
+.spell-btn.active{transform:scale(0.92);}
+.spell-btn.fire{border-color:#EF4444;background:rgba(254,226,226,0.9);}
+.spell-btn.fire.active{background:#FCA5A5;box-shadow:0 0 30px rgba(239,68,68,0.4);}
+.spell-btn.wind{border-color:#10B981;background:rgba(209,250,229,0.9);}
+.spell-btn.wind.active{background:#6EE7B7;box-shadow:0 0 30px rgba(16,185,129,0.4);}
+.spell-btn.ice{border-color:#06B6D4;background:rgba(207,250,254,0.9);}
+.spell-btn.ice.active{background:#67E8F9;box-shadow:0 0 30px rgba(6,182,212,0.4);}
+.spell-btn.water{border-color:#3B82F6;background:rgba(219,234,254,0.9);}
+.spell-btn.water.active{background:#93C5FD;box-shadow:0 0 30px rgba(59,130,246,0.4);}
+.spell-btn.lightning{border-color:#EAB308;background:rgba(254,249,195,0.9);}
+.spell-btn.lightning.active{background:#FDE047;box-shadow:0 0 30px rgba(234,179,8,0.4);}
+
+.spell-key{position:absolute;top:-8px;right:-4px;width:18px;height:18px;border-radius:4px;background:#333;color:white;font-size:9px;font-weight:700;display:flex;align-items:center;justify-content:center;}
+
+/* Garage Modal */
+.garage-overlay{position:fixed;inset:0;background:rgba(0,0,0,0.5);backdrop-filter:blur(8px);z-index:1000;display:none;align-items:center;justify-content:center;}
+.garage-overlay.show{display:flex;}
+.garage-modal{background:white;border-radius:20px;padding:40px;max-width:500px;width:90%;box-shadow:0 24px 80px rgba(0,0,0,0.2);text-align:center;}
+.garage-title{font-size:28px;font-weight:800;margin-bottom:8px;color:#1a1a2e;}
+.garage-sub{font-size:14px;color:#666;margin-bottom:24px;}
+.garage-input{width:200px;padding:14px 20px;font-size:24px;text-align:center;border:2px solid #e2e8f0;border-radius:12px;font-weight:700;letter-spacing:8px;outline:none;transition:border-color 0.2s;font-family:inherit;}
+.garage-input:focus{border-color:#6366F1;}
+.garage-input.error{border-color:#EF4444;animation:shake 0.4s;}
+.garage-input.success{border-color:#10B981;}
+.garage-enter-btn{display:block;margin:16px auto 0;padding:12px 32px;background:#6366F1;color:white;border:none;border-radius:10px;font-size:14px;font-weight:600;cursor:pointer;transition:all 0.2s;}
+.garage-enter-btn:hover{background:#4F46E5;transform:translateY(-2px);}
+
+@keyframes shake{0%,100%{transform:translateX(0);}25%{transform:translateX(-8px);}75%{transform:translateX(8px);}}
+
+/* Garage Interior */
+.garage-interior{position:fixed;inset:0;background:linear-gradient(180deg,#1e1b4b 0%,#312e81 50%,#1e1b4b 100%);z-index:900;display:none;flex-direction:column;align-items:center;justify-content:center;padding:20px;}
+.garage-interior.show{display:flex;}
+.garage-header{text-align:center;margin-bottom:32px;}
+.garage-header h1{font-size:32px;font-weight:800;color:white;margin-bottom:4px;}
+.garage-header p{font-size:14px;color:rgba(255,255,255,0.5);}
+.magic-grid{display:grid;grid-template-columns:repeat(5,1fr);gap:16px;max-width:600px;width:100%;}
+.magic-card{background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.1);border-radius:16px;padding:24px 16px;text-align:center;cursor:pointer;transition:all 0.3s;position:relative;overflow:hidden;}
+.magic-card:hover{transform:translateY(-4px);border-color:rgba(255,255,255,0.3);}
+.magic-card.casting{animation:castPulse 0.8s;}
+.magic-card .icon{font-size:40px;margin-bottom:8px;display:block;}
+.magic-card .name{font-size:12px;font-weight:600;color:white;margin-bottom:4px;}
+.magic-card .desc{font-size:10px;color:rgba(255,255,255,0.4);}
+.magic-card .key-hint{position:absolute;top:8px;right:8px;width:20px;height:20px;background:rgba(255,255,255,0.1);border-radius:4px;font-size:10px;color:rgba(255,255,255,0.5);display:flex;align-items:center;justify-content:center;font-weight:700;}
+
+@keyframes castPulse{0%{transform:scale(1);}30%{transform:scale(1.1);}100%{transform:scale(1);}}
+
+.magic-card.fire:hover{background:rgba(239,68,68,0.15);border-color:rgba(239,68,68,0.4);}
+.magic-card.wind:hover{background:rgba(16,185,129,0.15);border-color:rgba(16,185,129,0.4);}
+.magic-card.ice:hover{background:rgba(6,182,212,0.15);border-color:rgba(6,182,212,0.4);}
+.magic-card.water:hover{background:rgba(59,130,246,0.15);border-color:rgba(59,130,246,0.4);}
+.magic-card.lightning:hover{background:rgba(234,179,8,0.15);border-color:rgba(234,179,8,0.4);}
+
+.spell-effect{position:fixed;inset:0;z-index:950;pointer-events:none;display:none;}
+.spell-effect.show{display:block;}
+.spell-effect canvas{width:100%;height:100%;}
+
+.garage-close{position:fixed;top:20px;right:20px;z-index:910;width:40px;height:40px;border-radius:50%;background:rgba(255,255,255,0.1);border:1px solid rgba(255,255,255,0.2);color:white;font-size:18px;cursor:pointer;display:none;align-items:center;justify-content:center;transition:all 0.2s;}
+.garage-interior.show ~ .garage-close{display:flex;}
+.garage-close:hover{background:rgba(255,255,255,0.2);}
+
+/* Touch Controls */
+.touch-controls{position:fixed;bottom:0;left:0;right:0;height:200px;z-index:200;pointer-events:none;display:flex;justify-content:space-between;align-items:flex-end;padding:0 20px 24px;}
+.dpad{width:140px;height:140px;position:relative;pointer-events:auto;}
+.dpad-btn{position:absolute;width:46px;height:46px;border-radius:10px;border:2px solid rgba(0,0,0,0.1);background:rgba(255,255,255,0.85);backdrop-filter:blur(8px);display:flex;align-items:center;justify-content:center;font-size:16px;color:#444;box-shadow:0 2px 8px rgba(0,0,0,0.06);transition:all 0.1s;}
+.dpad-btn.active{background:#6366F1;color:white;transform:scale(0.9);}
+.dpad-up{top:0;left:50%;transform:translateX(-50%);}.dpad-up.active{transform:translateX(-50%) scale(0.9);}
+.dpad-down{bottom:0;left:50%;transform:translateX(-50%);}.dpad-down.active{transform:translateX(-50%) scale(0.9);}
+.dpad-left{left:0;top:50%;transform:translateY(-50%);}.dpad-left.active{transform:translateY(-50%) scale(0.9);}
+.dpad-right{right:0;top:50%;transform:translateY(-50%);}.dpad-right.active{transform:translateY(-50%) scale(0.9);}
+
+.right-btns{display:flex;gap:12px;pointer-events:auto;align-items:flex-end;}
+.touch-btn{width:64px;height:64px;border-radius:50%;border:2px solid rgba(0,0,0,0.1);background:rgba(255,255,255,0.85);backdrop-filter:blur(8px);display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;color:#444;box-shadow:0 2px 8px rgba(0,0,0,0.06);transition:all 0.1s;}
+.touch-btn.active{transform:scale(0.9);}
+.touch-btn.gas{background:rgba(34,197,94,0.2);border-color:rgba(34,197,94,0.4);width:72px;height:72px;font-size:12px;}
+.touch-btn.gas.active{background:rgba(34,197,94,0.5);}
+.touch-btn.brake{background:rgba(239,68,68,0.15);border-color:rgba(239,68,68,0.3);}
+.touch-btn.brake.active{background:rgba(239,68,68,0.4);}
+.touch-btn.garage-btn{background:rgba(99,102,241,0.15);border-color:rgba(99,102,241,0.3);font-size:9px;}
+.touch-btn.garage-btn.active{background:rgba(99,102,241,0.4);}
+
+.minimap{position:fixed;bottom:24px;right:20px;width:90px;height:90px;background:rgba(255,255,255,0.9);backdrop-filter:blur(8px);border:1px solid rgba(0,0,0,0.08);border-radius:10px;z-index:100;overflow:hidden;box-shadow:0 4px 16px rgba(0,0,0,0.06);}
+.minimap canvas{width:100%;height:100%;}
+
+.loading{position:fixed;inset:0;background:linear-gradient(135deg,#667eea,#764ba2);display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:9999;transition:opacity 0.8s;}
+.loading.done{opacity:0;pointer-events:none;}
+.loading h1{font-size:36px;font-weight:800;color:white;margin-bottom:4px;}
+.loading p{font-size:13px;color:rgba(255,255,255,0.6);margin-bottom:32px;text-align:center;padding:0 24px;}
+.load-bar{width:180px;height:3px;background:rgba(255,255,255,0.2);border-radius:2px;overflow:hidden;}
+.load-fill{height:100%;background:white;border-radius:2px;width:0%;transition:width 0.3s;}
+
+@media(min-width:769px){.touch-controls{display:none;}.minimap{bottom:24px;right:24px;width:120px;height:120px;}}
+@media(max-width:768px){.magic-bar{top:auto;bottom:230px;right:12px;flex-direction:column;}.spell-btn{width:44px;height:44px;font-size:16px;border-radius:10px;}.spell-btn span{display:none;}.spell-key{display:none;}.magic-grid{grid-template-columns:repeat(3,1fr);}.minimap{display:none;}}
+</style>
+</head>
+<body>
+
+<div class="loading" id="loading">
+  <h1>⚔️ Magic Kingdom</h1>
+  <p>WASD haydash · 1-5 sehrlar · G garaj<br>Touch boshqaruvlar telefonda</p>
+  <div class="load-bar"><div class="load-fill" id="load-fill"></div></div>
+</div>
+
+<canvas id="game"></canvas>
+
+<div class="hud">
+  <div class="hud-box"><div class="hud-label">Tezlik</div><div class="hud-value speed" id="hud-speed">0 km/h</div></div>
+  <div class="hud-box"><div class="hud-label">Tangalar</div><div class="hud-value gold" id="hud-coins">0</div></div>
+  <div class="hud-box"><div class="hud-label">Qirol</div><div class="hud-value" id="hud-king">👑 Siz</div></div>
+</div>
+
+<div class="magic-bar" id="magic-bar">
+  <div class="spell-btn fire" data-spell="fire" onclick="castSpell('fire')"><span class="spell-key">1</span>🔥<span>Olov</span></div>
+  <div class="spell-btn wind" data-spell="wind" onclick="castSpell('wind')"><span class="spell-key">2</span>🌪️<span>Shamol</span></div>
+  <div class="spell-btn ice" data-spell="ice" onclick="castSpell('ice')"><span class="spell-key">3</span>❄️<span>Muz</span></div>
+  <div class="spell-btn water" data-spell="water" onclick="castSpell('water')"><span class="spell-key">4</span>💧<span>Suv</span></div>
+  <div class="spell-btn lightning" data-spell="lightning" onclick="castSpell('lightning')"><span class="spell-key">5</span>⚡<span>Tok</span></div>
+</div>
+
+<!-- Garage Password Modal -->
+<div class="garage-overlay" id="garage-overlay">
+  <div class="garage-modal">
+    <div style="font-size:48px;margin-bottom:12px;">🏰</div>
+    <div class="garage-title">Qirollik Garaji</div>
+    <div class="garage-sub">Parolni kiriting (kod: 123)</div>
+    <input type="text" class="garage-input" id="garage-pass" maxlength="3" placeholder="•••" inputmode="numeric">
+    <button class="garage-enter-btn" onclick="tryGarageCode()">Kirish</button>
+  </div>
+</div>
+
+<!-- Garage Interior -->
+<div class="garage-interior" id="garage-interior">
+  <div class="garage-header">
+    <h1>🏰 Sehrli Garaj</h1>
+    <p>Sehrlarni sinab ko'ring (1-5 tugmalari yoki bosing)</p>
+  </div>
+  <div class="magic-grid">
+    <div class="magic-card fire" onclick="castSpellInGarage('fire')">
+      <span class="key-hint">1</span>
+      <span class="icon">🔥</span>
+      <div class="name">Olov Sehri</div>
+      <div class="desc">Olov yomg'iri yog'diradi</div>
+    </div>
+    <div class="magic-card wind" onclick="castSpellInGarage('wind')">
+      <span class="key-hint">2</span>
+      <span class="icon">🌪️</span>
+      <div class="name">Shamol Sehri</div>
+      <div class="desc">Kuchli tornado chaqiradi</div>
+    </div>
+    <div class="magic-card ice" onclick="castSpellInGarage('ice')">
+      <span class="key-hint">3</span>
+      <span class="icon">❄️</span>
+      <div class="name">Muz Sehri</div>
+      <div class="desc">Hamma narsani muzlatadi</div>
+    </div>
+    <div class="magic-card water" onclick="castSpellInGarage('water')">
+      <span class="key-hint">4</span>
+      <span class="icon">💧</span>
+      <div class="name">Suv Sehri</div>
+      <div class="desc">Suv to'lqini keladi</div>
+    </div>
+    <div class="magic-card lightning" onclick="castSpellInGarage('lightning')">
+      <span class="key-hint">5</span>
+      <span class="icon">⚡</span>
+      <div class="name">Tok Sehri</div>
+      <div class="desc">Chaqmoq uradi</div>
+    </div>
+  </div>
+</div>
+<button class="garage-close" id="garage-close" onclick="closeGarage()">✕</button>
+
+<!-- Spell Effects Canvas -->
+<div class="spell-effect" id="spell-effect">
+  <canvas id="spell-canvas"></canvas>
+</div>
+
+<!-- Touch Controls -->
+<div class="touch-controls" id="touch-controls">
+  <div class="dpad">
+    <div class="dpad-btn dpad-up" id="btn-up">▲</div>
+    <div class="dpad-btn dpad-down" id="btn-down">▼</div>
+    <div class="dpad-btn dpad-left" id="btn-left">◀</div>
+    <div class="dpad-btn dpad-right" id="btn-right">▶</div>
+  </div>
+  <div class="right-btns">
+    <div class="touch-btn garage-btn" id="btn-garage" onclick="openGarage()">GARAJ</div>
+    <div class="touch-btn brake" id="btn-brake">STOP</div>
+    <div class="touch-btn gas" id="btn-gas">GAZ</div>
+  </div>
+</div>
+
+<div class="minimap"><canvas id="minimap-canvas" width="120" height="120"></canvas></div>
+
+<script>
+// ============= WEBGL ENGINE =============
+const cv = document.getElementById('game');
+const gl = cv.getContext('webgl2',{antialias:true}) || cv.getContext('webgl',{antialias:true});
+
+function resize(){const d=Math.min(devicePixelRatio,2);cv.width=innerWidth*d;cv.height=innerHeight*d;gl.viewport(0,0,cv.width,cv.height);}
+addEventListener('resize',resize); resize();
+
+// Shaders
+const VS=`attribute vec4 aP;attribute vec3 aN,aC;uniform mat4 uProj,uView,uModel;uniform mat3 uNorm;varying vec3 vN,vP,vC;
+void main(){vec4 w=uModel*aP;vP=w.xyz;vN=uNorm*aN;vC=aC;gl_Position=uProj*uView*w;}`;
+const FS=`precision mediump float;varying vec3 vN,vP,vC;uniform vec3 uLight,uCam;uniform float uTime;
+void main(){vec3 n=normalize(vN),l=normalize(uLight);float d=max(dot(n,l),0.0);float a=0.4;
+vec3 v=normalize(uCam-vP),h=normalize(l+v);float s=pow(max(dot(n,h),0.0),24.0)*0.2;
+vec3 c=vC*(a+d*0.6)+vec3(s);float dist=length(uCam-vP);float f=1.0-exp(-dist*0.006);
+c=mix(c,vec3(0.53,0.81,0.92),f);gl_FragColor=vec4(c,1.0);}`;
+
+function mkShader(s,t){const sh=gl.createShader(t);gl.shaderSource(sh,s);gl.compileShader(sh);return sh;}
+function mkProg(v,f){const p=gl.createProgram();gl.attachShader(p,mkShader(v,gl.VERTEX_SHADER));gl.attachShader(p,mkShader(f,gl.FRAGMENT_SHADER));gl.linkProgram(p);return p;}
+const prog=mkProg(VS,FS);
+const L={aP:gl.getAttribLocation(prog,'aP'),aN:gl.getAttribLocation(prog,'aN'),aC:gl.getAttribLocation(prog,'aC'),
+uProj:gl.getUniformLocation(prog,'uProj'),uView:gl.getUniformLocation(prog,'uView'),uModel:gl.getUniformLocation(prog,'uModel'),
+uNorm:gl.getUniformLocation(prog,'uNorm'),uLight:gl.getUniformLocation(prog,'uLight'),uCam:gl.getUniformLocation(prog,'uCam'),uTime:gl.getUniformLocation(prog,'uTime')};
+
+// Math
+function m4(){const m=new Float32Array(16);m[0]=m[5]=m[10]=m[15]=1;return m;}
+function m4Persp(fov,asp,n,f){const m=new Float32Array(16),t=1/Math.tan(fov/2);m[0]=t/asp;m[5]=t;m[10]=(f+n)/(n-f);m[11]=-1;m[14]=2*f*n/(n-f);return m;}
+function m4Look(e,t,u){const m=new Float32Array(16);let zx=e[0]-t[0],zy=e[1]-t[1],zz=e[2]-t[2],l=Math.sqrt(zx*zx+zy*zy+zz*zz);zx/=l;zy/=l;zz/=l;
+let xx=u[1]*zz-u[2]*zy,xy=u[2]*zx-u[0]*zz,xz=u[0]*zy-u[1]*zx;l=Math.sqrt(xx*xx+xy*xy+xz*xz);xx/=l;xy/=l;xz/=l;
+let yx=zy*xz-zz*xy,yy=zz*xx-zx*xz,yz=zx*xy-zy*xx;
+m[0]=xx;m[1]=yx;m[2]=zx;m[4]=xy;m[5]=yy;m[6]=zy;m[8]=xz;m[9]=yz;m[10]=zz;
+m[12]=-(xx*e[0]+xy*e[1]+xz*e[2]);m[13]=-(yx*e[0]+yy*e[1]+yz*e[2]);m[14]=-(zx*e[0]+zy*e[1]+zz*e[2]);m[15]=1;return m;}
+function m4Trans(m,x,y,z){const r=new Float32Array(m);r[12]+=m[0]*x+m[4]*y+m[8]*z;r[13]+=m[1]*x+m[5]*y+m[9]*z;r[14]+=m[2]*x+m[6]*y+m[10]*z;return r;}
+function m4Scale(m,x,y,z){const r=new Float32Array(m);r[0]*=x;r[1]*=x;r[2]*=x;r[4]*=y;r[5]*=y;r[6]*=y;r[8]*=z;r[9]*=z;r[10]*=z;return r;}
+function m4RotY(m,a){const r=new Float32Array(m),c=Math.cos(a),s=Math.sin(a),m0=m[0],m1=m[1],m2=m[2],m8=m[8],m9=m[9],m10=m[10];
+r[0]=m0*c+m8*s;r[1]=m1*c+m9*s;r[2]=m2*c+m10*s;r[8]=m8*c-m0*s;r[9]=m9*c-m1*s;r[10]=m10*c-m2*s;return r;}
+function m3Norm(m){const n=new Float32Array(9),a=m[0],b=m[1],c=m[2],d=m[4],e=m[5],f=m[6],g=m[8],h=m[9],i=m[10];
+let det=a*(e*i-f*h)-b*(d*i-f*g)+c*(d*h-e*g);det=1/det;
+n[0]=(e*i-f*h)*det;n[1]=(c*h-b*i)*det;n[2]=(b*f-c*e)*det;n[3]=(f*g-d*i)*det;n[4]=(a*i-c*g)*det;n[5]=(c*d-a*f)*det;
+n[6]=(d*h-e*g)*det;n[7]=(b*g-a*h)*det;n[8]=(a*e-b*d)*det;return n;}
+
+// Geometry
+function box(w,h,d,r,g,b){
+  const hw=w/2,hh=h/2,hd=d/2;
+  const p=[-hw,-hh,hd,hw,-hh,hd,hw,hh,hd,-hw,hh,hd,hw,-hh,-hd,-hw,-hh,-hd,-hw,hh,-hd,hw,hh,-hd,
+    -hw,hh,hd,hw,hh,hd,hw,hh,-hd,-hw,hh,-hd,-hw,-hh,-hd,hw,-hh,-hd,hw,-hh,hd,-hw,-hh,hd,
+    hw,-hh,hd,hw,-hh,-hd,hw,hh,-hd,hw,hh,hd,-hw,-hh,-hd,-hw,-hh,hd,-hw,hh,hd,-hw,hh,-hd];
+  const n=[0,0,1,0,0,1,0,0,1,0,0,1,0,0,-1,0,0,-1,0,0,-1,0,0,-1,0,1,0,0,1,0,0,1,0,0,1,0,
+    0,-1,0,0,-1,0,0,-1,0,0,-1,0,1,0,0,1,0,0,1,0,0,1,0,0,-1,0,0,-1,0,0,-1,0,0,-1,0,0];
+  const c=[];for(let i=0;i<24;i++)c.push(r,g,b);
+  const idx=[];for(let i=0;i<6;i++){const o=i*4;idx.push(o,o+1,o+2,o,o+2,o+3);}
+  return mesh(p,n,c,idx);
+}
+function ground(sz,seg,cols){
+  const p=[],n=[],c=[],idx=[];const st=sz/seg,hl=sz/2;let vi=0;
+  for(let z=0;z<seg;z++)for(let x=0;x<seg;x++){
+    const px=-hl+x*st,pz=-hl+z*st,col=cols[(x+z)%2];
+    p.push(px,0,pz,px+st,0,pz,px+st,0,pz+st,px,0,pz+st);
+    for(let i=0;i<4;i++){n.push(0,1,0);c.push(col[0],col[1],col[2]);}
+    idx.push(vi,vi+1,vi+2,vi,vi+2,vi+3);vi+=4;}
+  return mesh(p,n,c,idx);
+}
+function mesh(p,n,c,idx){
+  const m={};m.p=gl.createBuffer();gl.bindBuffer(gl.ARRAY_BUFFER,m.p);gl.bufferData(gl.ARRAY_BUFFER,new Float32Array(p),gl.STATIC_DRAW);
+  m.n=gl.createBuffer();gl.bindBuffer(gl.ARRAY_BUFFER,m.n);gl.bufferData(gl.ARRAY_BUFFER,new Float32Array(n),gl.STATIC_DRAW);
+  m.c=gl.createBuffer();gl.bindBuffer(gl.ARRAY_BUFFER,m.c);gl.bufferData(gl.ARRAY_BUFFER,new Float32Array(c),gl.STATIC_DRAW);
+  m.i=gl.createBuffer();gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER,m.i);gl.bufferData(gl.ELEMENT_ARRAY_BUFFER,new Uint16Array(idx),gl.STATIC_DRAW);
+  m.cnt=idx.length;return m;
+}
+function draw(mesh,model){
+  gl.bindBuffer(gl.ARRAY_BUFFER,mesh.p);gl.enableVertexAttribArray(L.aP);gl.vertexAttribPointer(L.aP,3,gl.FLOAT,false,0,0);
+  gl.bindBuffer(gl.ARRAY_BUFFER,mesh.n);gl.enableVertexAttribArray(L.aN);gl.vertexAttribPointer(L.aN,3,gl.FLOAT,false,0,0);
+  gl.bindBuffer(gl.ARRAY_BUFFER,mesh.c);gl.enableVertexAttribArray(L.aC);gl.vertexAttribPointer(L.aC,3,gl.FLOAT,false,0,0);
+  gl.uniformMatrix4fv(L.uModel,false,model);gl.uniformMatrix3fv(L.uNorm,false,m3Norm(model));
+  gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER,mesh.i);gl.drawElements(gl.TRIANGLES,mesh.cnt,gl.UNSIGNED_SHORT,0);
+}
+
+// ============= WORLD =============
+const gnd=ground(200,30,[[0.35,0.65,0.25],[0.3,0.6,0.2]]);
+const carBody=box(1.8,0.7,3.2,0.85,0.2,0.2);
+const carRoof=box(1.4,0.5,1.5,0.75,0.15,0.15);
+const carWheel=box(0.3,0.55,0.55,0.15,0.15,0.18);
+
+// Castle (Qirollik)
+const castleBase=box(10,6,10,0.75,0.72,0.65);
+const castleTower=box(3,10,3,0.65,0.62,0.55);
+const castleTop=box(3.5,1.5,3.5,0.55,0.15,0.15);
+
+// Garage building
+const garageBody=box(8,5,10,0.4,0.35,0.6);
+const garageDoor=box(4,3.5,0.3,0.8,0.7,0.2);
+const garageSign=box(6,1,0.2,0.3,0.25,0.5);
+
+// Buildings
+const bldColors=[[0.9,0.4,0.3],[0.3,0.7,0.9],[0.95,0.8,0.2],[0.6,0.35,0.75],[0.3,0.85,0.5],[0.95,0.55,0.3]];
+const blds=[];
+for(let i=0;i<30;i++){
+  const w=2+Math.random()*4,h=3+Math.random()*10,d=2+Math.random()*4,c=bldColors[i%6];
+  let x,z;do{x=(Math.random()-0.5)*150;z=(Math.random()-0.5)*150;}while((Math.abs(x)<12&&Math.abs(z)<12)||(Math.abs(x-30)<8&&Math.abs(z)<8));
+  blds.push({m:box(w,h,d,c[0],c[1],c[2]),x,y:h/2,z,w,h,d});
+}
+
+// Trees
+const trees=[];
+for(let i=0;i<45;i++){let x,z;do{x=(Math.random()-0.5)*170;z=(Math.random()-0.5)*170;}while(Math.abs(x)<14&&Math.abs(z)<14);
+trees.push({tr:box(0.4,2.5,0.4,0.45,0.28,0.12),cn:box(2.2,2.8,2.2,0.2,0.6+Math.random()*0.15,0.15),x,z});}
+
+// Coins
+let coins=[];
+function spawnCoins(){coins=[];for(let i=0;i<20;i++){let x,z,ok;do{x=(Math.random()-0.5)*120;z=(Math.random()-0.5)*120;ok=true;
+for(const b of blds)if(Math.abs(x-b.x)<b.w+2&&Math.abs(z-b.z)<b.d+2){ok=false;break;}}while(!ok);
+coins.push({x,z,got:false,m:box(0.7,0.7,0.2,1.0,0.85,0.0)});}}
+spawnCoins();
+
+// Kings (NPCs)
+const kings=[];
+const kingColors=[[0.8,0.1,0.1],[0.1,0.1,0.8],[0.1,0.7,0.1],[0.7,0.5,0.0]];
+for(let i=0;i<4;i++){
+  const angle=i*Math.PI/2;const dist=20;
+  kings.push({body:box(1,2,1,kingColors[i][0],kingColors[i][1],kingColors[i][2]),crown:box(1.2,0.5,1.2,1.0,0.85,0.0),
+    x:Math.cos(angle)*dist,z:Math.sin(angle)*dist,angle:0});
+}
+
+// ============= PLAYER =============
+const P={x:0,z:0,y:0.55,angle:0,speed:0};
+let score=0,t=0;
+const cam={x:0,y:8,z:12};
+
+// ============= INPUT =============
+const keys={};
+addEventListener('keydown',e=>{keys[e.key.toLowerCase()]=true;keys[e.code]=true;
+  if(e.key==='g'||e.key==='G')openGarage();
+  if(e.key>='1'&&e.key<='5'){const spells=['fire','wind','ice','water','lightning'];castSpell(spells[+e.key-1]);}
+});
+addEventListener('keyup',e=>{keys[e.key.toLowerCase()]=false;keys[e.code]=false;});
+
+// Touch
+const ts={up:false,down:false,left:false,right:false,gas:false,brake:false};
+function setupT(id,k){const el=document.getElementById(id);if(!el)return;
+  el.addEventListener('touchstart',e=>{e.preventDefault();ts[k]=true;el.classList.add('active');},{passive:false});
+  el.addEventListener('touchend',e=>{e.preventDefault();ts[k]=false;el.classList.remove('active');},{passive:false});
+  el.addEventListener('touchcancel',()=>{ts[k]=false;el.classList.remove('active');});
+  el.addEventListener('mousedown',e=>{e.preventDefault();ts[k]=true;el.classList.add('active');});
+  el.addEventListener('mouseup',()=>{ts[k]=false;el.classList.remove('active');});
+  el.addEventListener('mouseleave',()=>{ts[k]=false;el.classList.remove('active');});}
+setupT('btn-up','up');setupT('btn-down','down');setupT('btn-left','left');setupT('btn-right','right');setupT('btn-gas','gas');setupT('btn-brake','brake');
+
+// ============= GARAGE SYSTEM =============
+let garageOpen=false;
+function openGarage(){document.getElementById('garage-overlay').classList.add('show');document.getElementById('garage-pass').value='';document.getElementById('garage-pass').focus();}
+function tryGarageCode(){
+  const input=document.getElementById('garage-pass');
+  if(input.value==='123'){input.classList.add('success');setTimeout(()=>{
+    document.getElementById('garage-overlay').classList.remove('show');document.getElementById('garage-interior').classList.add('show');
+    document.getElementById('garage-close').style.display='flex';garageOpen=true;input.classList.remove('success');},500);
+  }else{input.classList.add('error');setTimeout(()=>input.classList.remove('error'),500);input.value='';}
+}
+function closeGarage(){document.getElementById('garage-interior').classList.remove('show');document.getElementById('garage-close').style.display='none';garageOpen=false;}
+document.getElementById('garage-pass').addEventListener('keydown',e=>{if(e.key==='Enter')tryGarageCode();});
+
+// ============= SPELL SYSTEM =============
+const spellCanvas=document.getElementById('spell-canvas');
+const sCtx=spellCanvas.getContext('2d');
+let spellParticles=[];
+let activeSpell=null;
+let spellTimer=0;
+
+function resizeSpellCanvas(){spellCanvas.width=innerWidth*2;spellCanvas.height=innerHeight*2;sCtx.scale(2,2);}
+resizeSpellCanvas();addEventListener('resize',resizeSpellCanvas);
+
+function castSpell(type){
+  activeSpell=type;spellTimer=180;spellParticles=[];
+  document.getElementById('spell-effect').classList.add('show');
+  
+  // Highlight button
+  document.querySelectorAll('.spell-btn').forEach(b=>b.classList.remove('active'));
+  const btn=document.querySelector(`.spell-btn.${type}`);if(btn)btn.classList.add('active');
+  setTimeout(()=>{if(btn)btn.classList.remove('active');},600);
+  
+  // Generate particles based on spell type
+  const w=innerWidth,h=innerHeight;
+  switch(type){
+    case 'fire':for(let i=0;i<120;i++)spellParticles.push({x:Math.random()*w,y:h+20,vx:(Math.random()-0.5)*3,vy:-(3+Math.random()*5),size:4+Math.random()*8,life:1,color:`hsl(${Math.random()*40},100%,${50+Math.random()*30}%)`});break;
+    case 'wind':for(let i=0;i<80;i++)spellParticles.push({x:-20,y:Math.random()*h,vx:8+Math.random()*6,vy:(Math.random()-0.5)*4,size:2+Math.random()*4,life:1,angle:Math.random()*Math.PI*2,color:`hsl(${140+Math.random()*30},70%,${60+Math.random()*20}%)`});break;
+    case 'ice':for(let i=0;i<100;i++)spellParticles.push({x:Math.random()*w,y:-20,vx:(Math.random()-0.5)*2,vy:2+Math.random()*4,size:3+Math.random()*6,life:1,rot:Math.random()*Math.PI*2,color:`hsl(${190+Math.random()*20},80%,${70+Math.random()*20}%)`});break;
+    case 'water':for(let i=0;i<90;i++)spellParticles.push({x:Math.random()*w,y:h*0.3+Math.random()*h*0.4,vx:(Math.random()-0.5)*6,vy:(Math.random()-0.5)*6,size:5+Math.random()*10,life:1,color:`hsla(${200+Math.random()*20},80%,${50+Math.random()*20}%,0.7)`});break;
+    case 'lightning':
+      for(let i=0;i<8;i++){const sx=Math.random()*w;let lx=sx,ly=0;const pts=[{x:lx,y:ly}];
+      while(ly<h){lx+=((Math.random()-0.5)*80);ly+=20+Math.random()*40;pts.push({x:lx,y:ly});}
+      spellParticles.push({type:'bolt',points:pts,life:1,brightness:1});}
+      for(let i=0;i<60;i++)spellParticles.push({x:Math.random()*w,y:Math.random()*h,vx:(Math.random()-0.5)*8,vy:(Math.random()-0.5)*8,size:2+Math.random()*3,life:1,color:`hsl(${50+Math.random()*10},100%,${70+Math.random()*20}%)`});break;
+  }
+}
+
+function castSpellInGarage(type){
+  const card=document.querySelector(`.magic-card.${type}`);
+  if(card){card.classList.add('casting');setTimeout(()=>card.classList.remove('casting'),800);}
+  castSpell(type);
+}
+
+function updateSpells(){
+  if(!activeSpell)return;
+  spellTimer--;
+  if(spellTimer<=0){activeSpell=null;document.getElementById('spell-effect').classList.remove('show');return;}
+
+  sCtx.clearRect(0,0,innerWidth,innerHeight);
+
+  spellParticles.forEach(p=>{
+    if(p.type==='bolt'){
+      p.life-=0.015;p.brightness=p.life;
+      if(p.life<=0)return;
+      sCtx.beginPath();sCtx.moveTo(p.points[0].x,p.points[0].y);
+      for(let i=1;i<p.points.length;i++)sCtx.lineTo(p.points[i].x,p.points[i].y);
+      sCtx.strokeStyle=`rgba(255,255,100,${p.brightness})`;sCtx.lineWidth=3;sCtx.stroke();
+      sCtx.strokeStyle=`rgba(255,255,255,${p.brightness*0.5})`;sCtx.lineWidth=6;sCtx.stroke();
+      // Glow
+      sCtx.shadowColor='rgba(255,255,50,0.8)';sCtx.shadowBlur=20;sCtx.stroke();sCtx.shadowBlur=0;
+      return;
+    }
+    p.x+=p.vx;p.y+=p.vy;p.life-=0.008;
+    if(activeSpell==='fire'){p.vy-=0.05;p.size*=0.99;}
+    if(activeSpell==='wind'){p.angle=(p.angle||0)+0.1;p.y+=Math.sin(p.angle)*2;}
+    if(activeSpell==='ice'){p.rot=(p.rot||0)+0.02;}
+    if(activeSpell==='water'){p.vy+=0.08;p.vx*=0.98;}
+    if(p.life<=0)return;
+
+    sCtx.globalAlpha=p.life;
+    if(activeSpell==='ice'){
+      sCtx.save();sCtx.translate(p.x,p.y);sCtx.rotate(p.rot);
+      sCtx.fillStyle=p.color;sCtx.fillRect(-p.size/2,-p.size/2,p.size,p.size);
+      sCtx.restore();
+    }else{
+      sCtx.beginPath();sCtx.arc(p.x,p.y,p.size,0,Math.PI*2);sCtx.fillStyle=p.color;sCtx.fill();
+      if(activeSpell==='fire'){sCtx.shadowColor='orange';sCtx.shadowBlur=10;sCtx.fill();sCtx.shadowBlur=0;}
+    }
+    sCtx.globalAlpha=1;
+  });
+
+  spellParticles=spellParticles.filter(p=>p.life>0);
+  
+  // Add new particles continuously
+  if(spellTimer>30){
+    const w=innerWidth,h=innerHeight;
+    switch(activeSpell){
+      case 'fire':if(Math.random()>0.5)spellParticles.push({x:Math.random()*w,y:h+10,vx:(Math.random()-0.5)*3,vy:-(3+Math.random()*5),size:4+Math.random()*8,life:1,color:`hsl(${Math.random()*40},100%,${50+Math.random()*30}%)`});break;
+      case 'wind':if(Math.random()>0.6)spellParticles.push({x:-20,y:Math.random()*h,vx:8+Math.random()*6,vy:(Math.random()-0.5)*4,size:2+Math.random()*4,life:1,angle:0,color:`hsl(${140+Math.random()*30},70%,${60+Math.random()*20}%)`});break;
+      case 'ice':if(Math.random()>0.5)spellParticles.push({x:Math.random()*w,y:-20,vx:(Math.random()-0.5)*2,vy:2+Math.random()*4,size:3+Math.random()*6,life:1,rot:0,color:`hsl(${190+Math.random()*20},80%,${70+Math.random()*20}%)`});break;
+      case 'water':if(Math.random()>0.6)spellParticles.push({x:Math.random()*w,y:h*0.2,vx:(Math.random()-0.5)*6,vy:2+Math.random()*4,size:5+Math.random()*10,life:1,color:`hsla(${200+Math.random()*20},80%,${50+Math.random()*20}%,0.7)`});break;
+      case 'lightning':if(Math.random()>0.92){const sx=Math.random()*w;let lx=sx,ly=0;const pts=[{x:lx,y:ly}];while(ly<h){lx+=((Math.random()-0.5)*80);ly+=20+Math.random()*40;pts.push({x:lx,y:ly});}spellParticles.push({type:'bolt',points:pts,life:1,brightness:1});}break;
+    }
+  }
+}
+
+// ============= GAME LOOP =============
+function update(){
+  if(garageOpen)return;
+  const fwd=keys['w']||keys['arrowup']||ts.up||ts.gas;
+  const bwd=keys['s']||keys['arrowdown']||ts.down;
+  const lft=keys['a']||keys['arrowleft']||ts.left;
+  const rgt=keys['d']||keys['arrowright']||ts.right;
+  const brk=keys[' ']||ts.brake;
+
+  if(fwd)P.speed=Math.min(P.speed+0.012,0.6);
+  else if(bwd)P.speed=Math.max(P.speed-0.012,-0.25);
+  else P.speed*=0.985;
+  if(brk)P.speed*=0.92;
+
+  const tr=brk&&Math.abs(P.speed)>0.1?0.06:0.035;
+  if(Math.abs(P.speed)>0.01){if(lft)P.angle+=tr*(P.speed>0?1:-1);if(rgt)P.angle-=tr*(P.speed>0?1:-1);}
+
+  const nx=P.x+Math.sin(P.angle)*P.speed,nz=P.z+Math.cos(P.angle)*P.speed;
+  let ok=true;
+  for(const b of blds)if(Math.abs(nx-b.x)<(b.w/2+1.2)&&Math.abs(nz-b.z)<(b.d/2+1.8)){ok=false;P.speed*=-0.3;break;}
+  // Garage collision
+  if(Math.abs(nx-30)<5.5&&Math.abs(nz)<6.5){ok=false;P.speed*=-0.3;}
+  // Castle collision
+  if(Math.abs(nx)<7&&Math.abs(nz+30)<7){ok=false;P.speed*=-0.3;}
+  if(ok){P.x=nx;P.z=nz;}
+  P.x=Math.max(-95,Math.min(95,P.x));P.z=Math.max(-95,Math.min(95,P.z));
+
+  for(const c of coins)if(!c.got&&Math.sqrt((P.x-c.x)**2+(P.z-c.z)**2)<2){c.got=true;score++;document.getElementById('hud-coins').textContent=score;}
+  if(coins.every(c=>c.got))spawnCoins();
+
+  // Camera
+  const cd=14,ch=7+Math.abs(P.speed)*3;
+  cam.x+=(P.x-Math.sin(P.angle)*cd-cam.x)*0.04;cam.y+=(ch-cam.y)*0.04;cam.z+=(P.z-Math.cos(P.angle)*cd-cam.z)*0.04;
+  document.getElementById('hud-speed').textContent=Math.floor(Math.abs(P.speed)*180)+' km/h';
+  t+=0.016;
+
+  // Kings rotation
+  kings.forEach(k=>{k.angle+=0.01;});
+}
+
+function render(){
+  gl.clearColor(0.53,0.81,0.92,1);gl.clear(gl.COLOR_BUFFER_BIT|gl.DEPTH_BUFFER_BIT);
+  gl.enable(gl.DEPTH_TEST);gl.enable(gl.CULL_FACE);
+
+  const proj=m4Persp(Math.PI/3.5,cv.width/cv.height,0.1,300);
+  const view=m4Look([cam.x,cam.y,cam.z],[P.x,P.y+1,P.z],[0,1,0]);
+  gl.useProgram(prog);
+  gl.uniformMatrix4fv(L.uProj,false,proj);gl.uniformMatrix4fv(L.uView,false,view);
+  gl.uniform3f(L.uLight,0.4,0.9,0.3);gl.uniform3f(L.uCam,cam.x,cam.y,cam.z);gl.uniform1f(L.uTime,t);
+
+  draw(gnd,m4());
+
+  // Castle
+  draw(castleBase,m4Trans(m4(),0,3,-30));
+  draw(castleTower,m4Trans(m4(),-4,5,-34));draw(castleTop,m4Trans(m4(),-4,10.5,-34));
+  draw(castleTower,m4Trans(m4(),4,5,-34));draw(castleTop,m4Trans(m4(),4,10.5,-34));
+  draw(castleTower,m4Trans(m4(),-4,5,-26));draw(castleTop,m4Trans(m4(),-4,10.5,-26));
+  draw(castleTower,m4Trans(m4(),4,5,-26));draw(castleTop,m4Trans(m4(),4,10.5,-26));
+
+  // Garage
+  draw(garageBody,m4Trans(m4(),30,2.5,0));
+  draw(garageDoor,m4Trans(m4(),30,1.75,5.1));
+  draw(garageSign,m4Trans(m4(),30,5.2,5.1));
+
+  // Buildings
+  for(const b of blds)draw(b.m,m4Trans(m4(),b.x,b.y,b.z));
+
+  // Trees
+  for(const tr of trees){draw(tr.tr,m4Trans(m4(),tr.x,1.25,tr.z));draw(tr.cn,m4Trans(m4(),tr.x,3.7,tr.z));}
+
+  // Coins
+  for(const c of coins){if(c.got)continue;draw(c.m,m4RotY(m4Trans(m4(),c.x,1.2+Math.sin(t*3+c.x)*0.3,c.z),t*2+c.x));}
+
+  // Kings
+  kings.forEach(k=>{
+    draw(k.body,m4Trans(m4(),k.x,1,k.z));
+    draw(k.crown,m4Trans(m4(),k.x,2.3,k.z));
+  });
+
+  // Car
+  let cm=m4RotY(m4Trans(m4(),P.x,P.y,P.z),P.angle);draw(carBody,cm);
+  draw(carRoof,m4Trans(m4RotY(m4Trans(m4(),P.x,P.y+0.6,P.z),P.angle),0,0,-0.3));
+  [[-0.9,-0.15,1],[0.9,-0.15,1],[-0.9,-0.15,-1],[0.9,-0.15,-1]].forEach(w=>{
+    draw(carWheel,m4Trans(m4RotY(m4Trans(m4(),P.x,P.y,P.z),P.angle),w[0],w[1],w[2]));
+  });
+}
+
+// Minimap
+const mC=document.getElementById('minimap-canvas'),mX=mC.getContext('2d');
+function minimap(){
+  mX.fillStyle='rgba(240,245,250,0.95)';mX.fillRect(0,0,120,120);
+  const s=0.55,cx=60,cy=60;
+  mX.fillStyle='rgba(100,100,140,0.3)';
+  for(const b of blds){const bx=cx+(b.x-P.x)*s,bz=cy+(b.z-P.z)*s;if(bx>-5&&bx<125&&bz>-5&&bz<125)mX.fillRect(bx-b.w*s/2,bz-b.d*s/2,b.w*s,b.d*s);}
+  // Castle
+  const csx=cx+(0-P.x)*s,csz=cy+(-30-P.z)*s;mX.fillStyle='rgba(180,150,50,0.5)';mX.fillRect(csx-5*s,csz-5*s,10*s,10*s);
+  // Garage
+  const gx=cx+(30-P.x)*s,gz=cy+(0-P.z)*s;mX.fillStyle='rgba(99,102,241,0.4)';mX.fillRect(gx-4*s,gz-5*s,8*s,10*s);
+  // Coins
+  for(const c of coins){if(c.got)continue;const px=cx+(c.x-P.x)*s,pz=cy+(c.z-P.z)*s;if(px>0&&px<120&&pz>0&&pz<120){mX.fillStyle='rgba(212,160,23,0.8)';mX.beginPath();mX.arc(px,pz,2.5,0,Math.PI*2);mX.fill();}}
+  // Player
+  mX.save();mX.translate(cx,cy);mX.rotate(-P.angle);mX.fillStyle='#EF4444';mX.beginPath();mX.moveTo(0,-6);mX.lineTo(-4,4);mX.lineTo(4,4);mX.closePath();mX.fill();mX.restore();
+}
+
+function loop(){update();render();minimap();updateSpells();requestAnimationFrame(loop);}
+
+// Loading
+let lp=0;const li=setInterval(()=>{lp+=Math.random()*22+8;if(lp>=100){lp=100;clearInterval(li);setTimeout(()=>{document.getElementById('loading').classList.add('done');loop();},400);}document.getElementById('load-fill').style.width=lp+'%';},150);
+
+// Keyboard shortcuts in garage
+addEventListener('keydown',e=>{
+  if(garageOpen&&e.key>='1'&&e.key<='5'){const sp=['fire','wind','ice','water','lightning'];castSpellInGarage(sp[+e.key-1]);}
+  if(garageOpen&&e.key==='Escape')closeGarage();
+});
+</script>
+</body>
+</html>
